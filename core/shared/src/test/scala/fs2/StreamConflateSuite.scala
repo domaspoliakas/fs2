@@ -44,4 +44,26 @@ class StreamConflateSuite extends Fs2Suite {
         )
     )
   }
+
+  test("conflateChunks respects the provided limit") {
+    TestControl.executeEmbed(
+      Stream
+        .iterate(0)(_ + 1)
+        .take(1000)
+        .covary[IO]
+        .chunkLimit(1)
+        .unchunks
+        .conflateChunks(3)
+        .compile
+        .toList
+        .flatMap { res =>
+          IO {
+            assert(
+              res.forall(_.size <= 3),
+              s"Found chunks with more elements than expected: ${res.filter(_.size > 3).toList.mkString(", ")}"
+            )
+          }
+        }
+    )
+  }
 }
